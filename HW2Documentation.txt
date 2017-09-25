@@ -1,0 +1,51 @@
+Names: Talha Muhammad, Saif Siraj
+
+Base URL: https://fast-ravine-96020.herokuapp.com
+
+NOTE- :date should be in the format yyyy-mm-dd and is always required
+
+Retrieve, and remove data for asteroid data for a date to/from cache
+	GET- 		/date/:date
+
+	DELETE -	/date/delete/:date
+
+Retrieve fastest near-miss asteroid on specifc date
+	GET-		/asteroid/fastest/:date
+
+Retrieve hazardous near-misses on specifc date
+	GET-		/asteroid/hazard/:date
+
+Retrieve average speed of near-miss asteroids on specifc date
+	GET-		/asteroid/averageSpeed/:date
+
+Retrieve average distance of near-miss asteroids on specifc date
+	GET-		/asteroid/averageDistance/:date
+
+Add and update asteroid data on a specifc date
+	POST-		/asteroid/addNew/:date
+		body (JSON):
+			name: String (Required)
+			magnitude: int
+			diameter: obj 
+			hazard: boolean (Required)
+			date: String (Required)
+			velocity: obj (Required)
+				velocity.kilometers_per_second: String (Required)
+				velocity.kilometers_per_hour: String (Required)
+				velocity.miles_per_hour: String (Required)	
+			distance: String (Required)
+			orbit: String
+
+	PUT-		/asteroid/update/:date
+		body (JSON):
+			name: String (Required)
+			magnitude: int
+			diameter: obj 
+			hazard: boolean (Required)
+			date: String (Required)
+			velocity: obj (Required)
+				velocity.kilometers_per_second: String (Required)
+				velocity.kilometers_per_hour: String (Required)
+				velocity.miles_per_hour: String (Required)	
+			distance: String (Required)
+			orbit: String	
