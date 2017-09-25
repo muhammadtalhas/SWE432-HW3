@@ -12,6 +12,7 @@ let cachedData = [];
 // Express
 let app = express();
 
+let dateCounter = new Date();
 
 // function to build URI with passed in params. Defaulted endDate will be startDate
 buildURI = (startDate, endDate = 0) => {
@@ -103,6 +104,7 @@ app.get('/asteroid/fastest/:date', (req, res) => {
             let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
                 close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
             newDate.addNeo(NEO);
+
         }
         cachedData.push(newDate);
 
@@ -435,7 +437,7 @@ app.put('/asteroid/update/:date', (req, res) => {
 
 app.delete('/date/delete/:date', (req, res) => {
     for (let index in cachedData) {
-        if (cachedData[index].date === req.params.date){
+        if (cachedData[index].date === req.params.date) {
             cachedData.splice(index, 1);
             res.sendStatus(200)
             return;
@@ -445,77 +447,105 @@ app.delete('/date/delete/:date', (req, res) => {
 })
 
 app.get('/dates/:dates', (req, res) => {
-        let retdates = [];
-        if(req.params.dates.slice(0, 6) == "start=" && req.params.dates.slice(16, 20 == "end=")) {
-            let start = new day(req.slice(6, 16));
-            let end = new day(req.slice(20, 30));
+    let retdates = [];
+    if (req.params.dates.slice(0, 6) == "start=" && req.params.dates.slice(16, 20 == "end=")) {
+        let start = new day(req.slice(6, 16));
+        let end = new day(req.slice(20, 30));
 
-            let currdate = start.date;
-            while (currdate != end.date) {
-                let bool = false;
-                for (let date of cachedData) {
-                    if (currdate == date.date) {
-                        retdates.push(date);
-                        bool = true;
+        let currdate = start.date;
+        while (currdate != end.date) {
+            let bool = false;
+            for (let date of cachedData) {
+                if (currdate == date.date) {
+                    retdates.push(date);
+                    bool = true;
+                }
+            }
+            if (!bool) {
+
+                fetch(buildURI(currdate)).then(function (response) {
+                    return response.json();
+                }).then(function (response) {
+                    let object = response["near_earth_objects"][currdate];
+                    let newDate = new day(currdate);
+                    for (let objs of object) {
+                        let dia = objs.estimated_diameter;
+                        let close = objs.close_approach_data[0];
+                        let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
+                            close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
+                        newDate.addNeo(NEO);
                     }
-                }
-                if (!bool) {
-
-                    fetch(buildURI(currdate)).then(function (response) {
-                        return response.json();
-                    }).then(function (response) {
-                        let object = response["near_earth_objects"][currdate];
-                        let newDate = new day(currdate);
-                        for (let objs of object) {
-                            let dia = objs.estimated_diameter;
-                            let close = objs.close_approach_data[0];
-                            let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
-                                close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
-                            newDate.addNeo(NEO);
-                        }
-                        cachedData.push(newDate);
-                        retdates.push(newDate);
-                    })
+                    cachedData.push(newDate);
+                    retdates.push(newDate);
+                })
 
 
-                }
-
-                let currjsdate = new Date();
-                currjsdate.setFullYear(currdate.slice(0, 4));
-                currjsdate.setMonth(currdate.slice(5, 7));
-                currjsdate.setDate(currdate.slice(8, 10));
-
-                currjsdate.setDate(currjsdate.getDate() + 1);
-
-
-                let cday = "";
-                let cmonth = "";
-                if (currjsdate.getMonth() < 10) {
-                    cmonth = `0${currjsdate.getMonth()}`;
-
-                }
-                else {
-                    cmonth = `${currjsdate.getMonth()}`;
-                }
-
-
-                if (currjsdate.getDate() < 10) {
-                    cday = `0${currjsdate.getDate()}`;
-
-                }
-                else {
-                    cday = `${currjsdate.getDate()}`;
-                }
-                currdate = `${currjsdate.getFullYear()}-${cmonth}-${cday}`;
-                console.log(currdate);
             }
 
+            let currjsdate = new Date();
+            currjsdate.setFullYear(currdate.slice(0, 4));
+            currjsdate.setMonth(currdate.slice(5, 7));
+            currjsdate.setDate(currdate.slice(8, 10));
+
+            currjsdate.setDate(currjsdate.getDate() + 1);
+
+
+            let cday = "";
+            let cmonth = "";
+            if (currjsdate.getMonth() < 10) {
+                cmonth = `0${currjsdate.getMonth()}`;
+
+            }
+            else {
+                cmonth = `${currjsdate.getMonth()}`;
+            }
+
+
+            if (currjsdate.getDate() < 10) {
+                cday = `0${currjsdate.getDate()}`;
+
+            }
+            else {
+                cday = `${currjsdate.getDate()}`;
+            }
+            currdate = `${currjsdate.getFullYear()}-${cmonth}-${cday}`;
+            console.log(currdate);
         }
-        else{
-            return;
-        }
-        res.send(retdates);
+
+    }
+    else {
+        return;
+    }
+    res.send(retdates);
 });
 app.listen(port, function () {
     console.log("( ͡° ͜ʖ ͡°) Hi! Im Mr. Lenny. Visit me on " + port)
 });
+
+setInterval(() => {
+    let dateStr = dateCounter.toISOString().slice(0, 10);
+    let isCached = false;
+    for (let date of cachedData) {
+        if (dateStr === date.date) {
+            isCached = true;
+        }
+    }
+    if (!isCached) {
+        fetch(buildURI(dateStr)).then(function (response) {
+            return response.json();
+        }).then(function (response) {
+            let object = response["near_earth_objects"][dateStr];
+            let newDate = new day(dateStr);
+            for (let objs of object) {
+                let dia = objs.estimated_diameter;
+                let close = objs.close_approach_data[0];
+                let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
+                    close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
+                newDate.addNeo(NEO);
+            }
+            console.log(dateStr + ' added to cache')
+            cachedData.push(newDate);
+        })
+    }
+    dateCounter.setDate(dateCounter.getDate() -1)
+}, 900000);
