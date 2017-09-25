@@ -446,15 +446,18 @@ app.delete('/date/delete/:date', (req, res) => {
 
 app.get('/dates/:dates', (req, res) => {
         let retdates = [];
-        if(req.params.dates.slice(0, 6) == "start=" && req.params.dates.slice(16, 20 == "end=")) {
-            let start = new day(req.slice(6, 16));
-            let end = new day(req.slice(20, 30));
 
+        if(req.params.dates.slice(0, 6) == "start=" && req.params.dates.slice(16, 20) == "end=") {
+            let start = new day(req.params.dates.slice(6, 16));
+            let end = new day(req.params.dates.slice(20, 30));
+            console.log(start.date);
             let currdate = start.date;
             while (currdate != end.date) {
                 let bool = false;
                 for (let date of cachedData) {
                     if (currdate == date.date) {
+                        console.log("found in cache");
+                        console.log(date);
                         retdates.push(date);
                         bool = true;
                     }
@@ -464,7 +467,10 @@ app.get('/dates/:dates', (req, res) => {
                     fetch(buildURI(currdate)).then(function (response) {
                         return response.json();
                     }).then(function (response) {
+                        console.log(currdate);
+
                         let object = response["near_earth_objects"][currdate];
+                        console.log(object);
                         let newDate = new day(currdate);
                         for (let objs of object) {
                             let dia = objs.estimated_diameter;
@@ -508,12 +514,14 @@ app.get('/dates/:dates', (req, res) => {
                 }
                 currdate = `${currjsdate.getFullYear()}-${cmonth}-${cday}`;
                 console.log(currdate);
+                bool = false;
             }
 
         }
         else{
             return;
         }
+
         res.send(retdates);
 });
 app.listen(port, function () {
