@@ -1,6 +1,7 @@
 let fetch = require('node-fetch');
 let express = require('express');
 let bodyParser = require('body-parser');
+let nock = require('nock');
 
 //NASA Api constants
 const baseURL = "https://api.nasa.gov/neo/rest/v1/feed?";
@@ -443,6 +444,78 @@ app.delete('/date/delete/:date', (req, res) => {
     res.sendStatus(400);
 })
 
+app.get('/dates/:dates', (req, res) => {
+        let retdates = [];
+        if(req.params.dates.slice(0, 6) == "start=" && req.params.dates.slice(16, 20 == "end=")) {
+            let start = new day(req.slice(6, 16));
+            let end = new day(req.slice(20, 30));
+
+            let currdate = start.date;
+            while (currdate != end.date) {
+                let bool = false;
+                for (let date of cachedData) {
+                    if (currdate == date.date) {
+                        retdates.push(date);
+                        bool = true;
+                    }
+                }
+                if (!bool) {
+
+                    fetch(buildURI(currdate)).then(function (response) {
+                        return response.json();
+                    }).then(function (response) {
+                        let object = response["near_earth_objects"][currdate];
+                        let newDate = new day(currdate);
+                        for (let objs of object) {
+                            let dia = objs.estimated_diameter;
+                            let close = objs.close_approach_data[0];
+                            let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
+                                close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
+                            newDate.addNeo(NEO);
+                        }
+                        cachedData.push(newDate);
+                        retdates.push(newDate);
+                    })
+
+
+                }
+
+                let currjsdate = new Date();
+                currjsdate.setFullYear(currdate.slice(0, 4));
+                currjsdate.setMonth(currdate.slice(5, 7));
+                currjsdate.setDate(currdate.slice(8, 10));
+
+                currjsdate.setDate(currjsdate.getDate() + 1);
+
+
+                let cday = "";
+                let cmonth = "";
+                if (currjsdate.getMonth() < 10) {
+                    cmonth = `0${currjsdate.getMonth()}`;
+
+                }
+                else {
+                    cmonth = `${currjsdate.getMonth()}`;
+                }
+
+
+                if (currjsdate.getDate() < 10) {
+                    cday = `0${currjsdate.getDate()}`;
+
+                }
+                else {
+                    cday = `${currjsdate.getDate()}`;
+                }
+                currdate = `${currjsdate.getFullYear()}-${cmonth}-${cday}`;
+                console.log(currdate);
+            }
+
+        }
+        else{
+            return;
+        }
+        res.send(retdates);
+});
 app.listen(port, function () {
     console.log("( ͡° ͜ʖ ͡°) Hi! Im Mr. Lenny. Visit me on " + port)
 });
