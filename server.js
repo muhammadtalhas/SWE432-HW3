@@ -73,6 +73,29 @@ app.get('/date/:date', (req, res) => {
         }
         cachedData.push(newDate);
         res.send(newDate)
+    }).catch(() => {
+        console.log("Fetch failed (non 200). Maybe timed event triggered and caused rate limit. Retrying in 5 seconds")
+        setTimeout(
+            console.log("Done waiting"), 5000);
+        fetch(buildURI(req.params.date)).then(function (response) {
+            return response.json();
+        }).then(function (response) {
+            let object = response["near_earth_objects"][req.params.date];
+            let newDate = new day(req.params.date);
+            for (let objs of object) {
+                let dia = objs.estimated_diameter;
+                let close = objs.close_approach_data[0];
+                let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
+                    close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
+                newDate.addNeo(NEO);
+            }
+            cachedData.push(newDate);
+            res.send(newDate)
+        }).catch(() => {
+            console.log("Retry Failed")
+            res.sendStatus(400)
+        })
+
     })
 });
 
@@ -276,6 +299,54 @@ app.get('/asteroid/averageDistance/:date', (req, res) => {
     })
 });
 
+app.get('/asteroid/largestDiameter/:date', (req, res) => {
+    for (let date of cachedData) {
+        if (req.params.date === date.date) {
+            let largest = null;
+
+            date.nearearthobjectsarray.map((NEO) => {
+                if (largest = null) {
+                    largest = NEO
+                } else {
+                    if (NEO.distance > largest.diameter) {
+                        largest = NEO
+                    }
+                }
+            });
+            res.send(largest)
+            return; // return stops further execution
+        }
+    }
+    fetch(buildURI(req.params.date)).then(function (response) {
+        return response.json();
+    }).then(function (response) {
+        let object = response["near_earth_objects"][req.params.date];
+        let newDate = new day(req.params.date);
+        for (let objs of object) {
+            let dia = objs.estimated_diameter;
+            let close = objs.close_approach_data[0];
+            let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
+                close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
+            newDate.addNeo(NEO);
+        }
+        cachedData.push(newDate);
+
+        let largest = null;
+        date.nearearthobjectsarray.map((NEO) => {
+            if (largest = null) {
+                largest = NEO
+            } else {
+                if (NEO.distance > largest.diameter) {
+                    largest = NEO
+                }
+            }
+        });
+
+        res.send(largest)
+    })
+});
+
+
 app.post('/asteroid/addNew/:date', (req, res) => {
         if (req.params.date &&
             req.body.name &&
@@ -462,7 +533,6 @@ app.get('/dates/:dates', (req, res) => {
                     bool = true;
                 }
             }
-
             if (!bool) {
                 retdates.push("REPLACE");
                 toreplace.push(buildURI(currdate));
@@ -472,22 +542,17 @@ app.get('/dates/:dates', (req, res) => {
             else {
                 currdate = incDay(currdate);
                 bool = false;
-
             }
-
         }
         if (toreplace.length > 0) {
-
             let promises = toreplace.map((uri) => {
                 return fetch(uri).then(function (response) {
                     return response.json();
                 }).then(function (response) {
                     let sdte = uri.indexOf("start_date=");
                     currdate = uri.slice(sdte + 11, sdte + 21);
-
-                    if(response["near_earth_objects"] != undefined) {
+                    if (response["near_earth_objects"] != undefined) {
                         let object = response["near_earth_objects"][currdate];
-
                         let newDate = new day(currdate);
                         for (let objs of object) {
                             let dia = objs.estimated_diameter;
@@ -499,8 +564,7 @@ app.get('/dates/:dates', (req, res) => {
                         cachedData.push(newDate);
                         return newDate;
                     }
-                    else{
-
+                    else {
                         let newDate = new day(currdate);
                         cachedData.push(newDate)
                         return newDate;
@@ -508,13 +572,9 @@ app.get('/dates/:dates', (req, res) => {
                 })
             });
 
-
             Promise.all(promises).then(allResults => {
-
                 for (let i = 0; i < allResults.length; i++) {
-
                     for (let j = 0; j < retdates.length; j++) {
-
                         if (retdates[j] == "REPLACE") {
                             retdates[j] = allResults[i];
                             break;
@@ -523,20 +583,14 @@ app.get('/dates/:dates', (req, res) => {
                 }
                 res.send(retdates);
             })
-
-
         }
         else {
             res.send(retdates);
         }
-
-
     }
     else {
         res.sendStatus(400);
     }
-
-
 });
 app.listen(port, function () {
     console.log("( ͡° ͜ʖ ͡°) Hi! Im Mr. Lenny. Visit me on " + port)
@@ -574,33 +628,25 @@ app.listen(port, function () {
 incDay = (currdate) => {
     let currjsdate = new Date();
     currjsdate.setFullYear(currdate.slice(0, 4));
-    console.log("ok");
-    console.log(parseInt(currdate.slice(5,7)) - 1);
-    currjsdate.setMonth(parseInt(currdate.slice(5, 7)) - 1 );
+    currjsdate.setMonth(parseInt(currdate.slice(5, 7)) - 1);
     currjsdate.setDate(currdate.slice(8, 10));
-
     currjsdate.setDate(currjsdate.getDate() + 1);
-
 
     let cday = "";
     let cmonth = "";
     if (currjsdate.getMonth() < 10) {
-        cmonth = `0${currjsdate.getMonth()+1}`;
-
+        cmonth = `0${currjsdate.getMonth() + 1}`;
     }
     else {
-        cmonth = `${currjsdate.getMonth()+1}`;
+        cmonth = `${currjsdate.getMonth() + 1}`;
     }
-
 
     if (currjsdate.getDate() < 10) {
         cday = `0${currjsdate.getDate()}`;
-
     }
     else {
         cday = `${currjsdate.getDate()}`;
     }
     currdate = `${currjsdate.getFullYear()}-${cmonth}-${cday}`;
     return currdate;
-
 };

@@ -4,24 +4,32 @@ Base URL: https://fast-ravine-96020.herokuapp.com
 
 NOTE- :date should be in the format yyyy-mm-dd and is always required
 
-Retrieve, and remove data for asteroid data for a date to/from cache
+Retrieve, and remove asteroid data for a date
 	GET- 		/date/:date
-
 	DELETE -	/date/delete/:date
 
-Retrieve fastest near-miss asteroid on specifc date
+Retrieve asteroid data for any range of dats:
+    GET-    /dates/:dates
+    *Note: Dates must be in the format start=YYYY-MM-DDend=YYYY-MM-DD
+    *Note: A large range of dates may be blocked as the data provider rate limits
+           Please max out at one month (The API key gets blocked really easily)
+
+Retrieve fastest near-miss asteroid on specific date
 	GET-		/asteroid/fastest/:date
 
-Retrieve hazardous near-misses on specifc date
+Retrieve hazardous near-misses on specific date
 	GET-		/asteroid/hazard/:date
 
-Retrieve average speed of near-miss asteroids on specifc date
+Retrieve average speed of near-miss asteroids on specific date
 	GET-		/asteroid/averageSpeed/:date
 
-Retrieve average distance of near-miss asteroids on specifc date
+Retrieve average distance of near-miss asteroids on specific date
 	GET-		/asteroid/averageDistance/:date
 
-Add and update asteroid data on a specifc date
+Retrieve largest near-miss asteroid on specific date
+    GET-		/asteroid/largestDiameter/:date
+
+Add and update asteroid data on a specific date
 	POST-		/asteroid/addNew/:date
 		body (JSON):
 			name: String (Required)
