@@ -485,18 +485,26 @@ app.get('/dates/:dates', (req, res) => {
                     let sdte = uri.indexOf("start_date=");
                     currdate = uri.slice(sdte + 11, sdte + 21);
 
-                    let object = response["near_earth_objects"][currdate];
+                    if(response["near_earth_objects"] != undefined) {
+                        let object = response["near_earth_objects"][currdate];
 
-                    let newDate = new day(currdate);
-                    for (let objs of object) {
-                        let dia = objs.estimated_diameter;
-                        let close = objs.close_approach_data[0];
-                        let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
-                            close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
-                        newDate.addNeo(NEO);
+                        let newDate = new day(currdate);
+                        for (let objs of object) {
+                            let dia = objs.estimated_diameter;
+                            let close = objs.close_approach_data[0];
+                            let NEO = new nearEarthObject(objs.name, objs.absolute_magnitude_h, dia.feet, objs.is_potentially_hazardous_asteroid,
+                                close.close_approach_date, close.relative_velocity, close.miss_distance.miles, close.orbiting_body);
+                            newDate.addNeo(NEO);
+                        }
+                        cachedData.push(newDate);
+                        return newDate;
                     }
-                    cachedData.push(newDate);
-                    return newDate;
+                    else{
+
+                        let newDate = new day(currdate);
+                        cachedData.push(newDate)
+                        return newDate;
+                    }
                 })
             });
 
