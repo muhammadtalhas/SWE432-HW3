@@ -6,7 +6,7 @@ let dateCounter = new Date();
 
 //NASA Api constants
 const baseURL = "https://api.nasa.gov/neo/rest/v1/feed?";
-const apiKey = "aQrVloEcD9iUyUxAuWup8KodIyE0RyeLQNZQmUjx";
+const apiKey = "SiZ3t9g3uM9d480qAxaJZpxtclu9xrMYmFKHjRAP";
 
 // Will hold cached data
 let cachedData = [];
@@ -574,7 +574,9 @@ app.listen(port, function () {
 incDay = (currdate) => {
     let currjsdate = new Date();
     currjsdate.setFullYear(currdate.slice(0, 4));
-    currjsdate.setMonth(currdate.slice(5, 7));
+    console.log("ok");
+    console.log(parseInt(currdate.slice(5,7)) - 1);
+    currjsdate.setMonth(parseInt(currdate.slice(5, 7)) - 1 );
     currjsdate.setDate(currdate.slice(8, 10));
 
     currjsdate.setDate(currjsdate.getDate() + 1);
@@ -583,11 +585,11 @@ incDay = (currdate) => {
     let cday = "";
     let cmonth = "";
     if (currjsdate.getMonth() < 10) {
-        cmonth = `0${currjsdate.getMonth()}`;
+        cmonth = `0${currjsdate.getMonth()+1}`;
 
     }
     else {
-        cmonth = `${currjsdate.getMonth()}`;
+        cmonth = `${currjsdate.getMonth()+1}`;
     }
 
 
