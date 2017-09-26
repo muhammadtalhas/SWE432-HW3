@@ -623,7 +623,7 @@ app.listen(port, function () {
         })
     }
     dateCounter.setDate(dateCounter.getDate() - 1)
-}, 5000)
+}, 900000)
 
 incDay = (currdate) => {
     let currjsdate = new Date();
