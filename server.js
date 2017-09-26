@@ -73,7 +73,7 @@ app.get('/date/:date', (req, res) => {
         cachedData.push(newDate);
         res.send(newDate)
     })
-})
+});
 
 app.get('/asteroid/fastest/:date', (req, res) => {
     for (let date of cachedData) {
@@ -118,7 +118,7 @@ app.get('/asteroid/fastest/:date', (req, res) => {
         });
         res.send(responseNEO)
     })
-})
+});
 
 app.get('/asteroid/hazard/:date', (req, res) => {
     for (let date of cachedData) {
@@ -163,7 +163,7 @@ app.get('/asteroid/hazard/:date', (req, res) => {
             res.send({"error": "No Hazards!"})
         }
     })
-})
+});
 
 app.get('/asteroid/averageSpeed/:date', (req, res) => {
     for (let date of cachedData) {
@@ -226,7 +226,7 @@ app.get('/asteroid/averageSpeed/:date', (req, res) => {
             "avgKPS": avgKPS
         })
     })
-})
+});
 
 app.get('/asteroid/averageDistance/:date', (req, res) => {
     for (let date of cachedData) {
@@ -273,7 +273,7 @@ app.get('/asteroid/averageDistance/:date', (req, res) => {
             "avgDis_miles": avgDis,
         })
     })
-})
+});
 
 app.post('/asteroid/addNew/:date', (req, res) => {
         if (req.params.date &&
@@ -352,7 +352,7 @@ app.post('/asteroid/addNew/:date', (req, res) => {
             res.sendStatus(400)
         }
     }
-)
+);
 
 app.put('/asteroid/update/:date', (req, res) => {
     if (req.params.date &&
@@ -430,7 +430,7 @@ app.put('/asteroid/update/:date', (req, res) => {
     } else {
         res.sendStatus(400)
     }
-})
+});
 
 
 app.delete('/date/delete/:date', (req, res) => {
@@ -442,35 +442,50 @@ app.delete('/date/delete/:date', (req, res) => {
         }
     }
     res.sendStatus(400);
-})
+});
+
 
 app.get('/dates/:dates', (req, res) => {
         let retdates = [];
-
+        let toreplace = [];
         if(req.params.dates.slice(0, 6) == "start=" && req.params.dates.slice(16, 20) == "end=") {
             let start = new day(req.params.dates.slice(6, 16));
             let end = new day(req.params.dates.slice(20, 30));
-            console.log(start.date);
             let currdate = start.date;
-            while (currdate != end.date) {
+            while (currdate != incDay(end.date)) {
                 let bool = false;
                 for (let date of cachedData) {
                     if (currdate == date.date) {
-                        console.log("found in cache");
-                        console.log(date);
+
                         retdates.push(date);
                         bool = true;
                     }
                 }
-                if (!bool) {
 
-                    fetch(buildURI(currdate)).then(function (response) {
+                if (!bool) {
+                    retdates.push("REPLACE");
+                    toreplace.push(buildURI(currdate));
+                    currdate = incDay(currdate);
+                    bool = false;
+                }
+                else {
+                    currdate = incDay(currdate);
+                    bool = false;
+
+                }
+
+            }
+            if(toreplace.length > 0) {
+
+                let promises = toreplace.map((uri) => {
+                    return fetch(uri).then(function (response) {
                         return response.json();
                     }).then(function (response) {
-                        console.log(currdate);
+                        let sdte = uri.indexOf("start_date=");
+                        currdate = uri.slice(sdte+11, sdte+21);
 
                         let object = response["near_earth_objects"][currdate];
-                        console.log(object);
+
                         let newDate = new day(currdate);
                         for (let objs of object) {
                             let dia = objs.estimated_diameter;
@@ -480,50 +495,74 @@ app.get('/dates/:dates', (req, res) => {
                             newDate.addNeo(NEO);
                         }
                         cachedData.push(newDate);
-                        retdates.push(newDate);
+                        return newDate;
                     })
+                });
 
 
-                }
+                Promise.all(promises).then(allResults => {
 
-                let currjsdate = new Date();
-                currjsdate.setFullYear(currdate.slice(0, 4));
-                currjsdate.setMonth(currdate.slice(5, 7));
-                currjsdate.setDate(currdate.slice(8, 10));
+                    for(let i = 0; i < allResults.length; i++){
 
-                currjsdate.setDate(currjsdate.getDate() + 1);
+                        for(let j = 0; j < retdates.length; j ++){
 
-
-                let cday = "";
-                let cmonth = "";
-                if (currjsdate.getMonth() < 10) {
-                    cmonth = `0${currjsdate.getMonth()}`;
-
-                }
-                else {
-                    cmonth = `${currjsdate.getMonth()}`;
-                }
+                            if(retdates[j] == "REPLACE"){
+                                retdates[j] = allResults[i];
+                                break;
+                            }
+                        }
+                    }
+                    res.send(retdates);
+                })
 
 
-                if (currjsdate.getDate() < 10) {
-                    cday = `0${currjsdate.getDate()}`;
 
-                }
-                else {
-                    cday = `${currjsdate.getDate()}`;
-                }
-                currdate = `${currjsdate.getFullYear()}-${cmonth}-${cday}`;
-                console.log(currdate);
-                bool = false;
             }
+            else{
+                res.send(retdates);
+            }
+
+
 
         }
         else{
             return;
         }
 
-        res.send(retdates);
+
 });
 app.listen(port, function () {
     console.log("( ͡° ͜ʖ ͡°) Hi! Im Mr. Lenny. Visit me on " + port)
 });
+
+incDay = (currdate) => {
+    let currjsdate = new Date();
+    currjsdate.setFullYear(currdate.slice(0, 4));
+    currjsdate.setMonth(currdate.slice(5, 7));
+    currjsdate.setDate(currdate.slice(8, 10));
+
+    currjsdate.setDate(currjsdate.getDate() + 1);
+
+
+    let cday = "";
+    let cmonth = "";
+    if (currjsdate.getMonth() < 10) {
+        cmonth = `0${currjsdate.getMonth()}`;
+
+    }
+    else {
+        cmonth = `${currjsdate.getMonth()}`;
+    }
+
+
+    if (currjsdate.getDate() < 10) {
+        cday = `0${currjsdate.getDate()}`;
+
+    }
+    else {
+        cday = `${currjsdate.getDate()}`;
+    }
+    currdate = `${currjsdate.getFullYear()}-${cmonth}-${cday}`;
+    return currdate;
+
+};
